@@ -3,7 +3,7 @@ from input_collection import SimpleTCPInputCollector, UrandomInputCollector
 from input_processing import MerkleTreeInputProcessor
 from computation import SlothComputation
 
-input_collectors = [SimpleTCPInputCollector()]#, UrandomInputCollector()]
+input_collectors = [SimpleTCPInputCollector(), UrandomInputCollector()]
 
 input_processor = MerkleTreeInputProcessor()
 
@@ -25,10 +25,8 @@ def main():
 
     print("{:=^80}".format(" PROCESSING INPUT "))
     from itertools import chain
-    # input_data = list(chain(*[c.collected_inputs for c in input_collectors]))
-    # print('\n'.join([repr(d) for d in input_data]))
-    input_processor.input_data = list(map(lambda v: v.decode("utf8"), chain(*[c.collected_inputs for c in input_collectors])))
-    # input_processor.input_data = input_data
+    input_data = chain(*[c.collected_inputs for c in input_collectors])
+    input_processor.input_data = input_data
 
     input_processor.process()
 

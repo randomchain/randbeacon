@@ -1,25 +1,4 @@
-from hashlib import sha256 as sha
-from itertools import zip_longest
 from merkletools import MerkleTools
-
-class MerkleNode(object):
-
-    """Docstring for MerkleNode. """
-
-    def __init__(self, l_child=None, r_child=None, value=None, telemetry_data=None):
-        self.l_child = l_child
-        self.r_child = r_child
-        self._value = value
-        self.telemetry_data = telemetry_data
-
-    @property
-    def value(self):
-        if self._value is None:
-            self._value = sha(self.l_child.value + self.r_child.value).digest()
-        return self._value
-
-    def __repr__(self):
-        return "Value {}".format(self.value.hex())
 
 class MerkleTreeInputProcessor(object):
 
@@ -35,12 +14,11 @@ class MerkleTreeInputProcessor(object):
     def process(self):
         self.mt.reset_tree()
         assert self.input_data is not None, "Input data must be provided before processing"
-        assert self.input_data, "Input data must be provided before processing"
-        self.mt.add_leaf(self.input_data, True)
+        assert self.input_data, "Input data cannot be empty"
+        self.mt.add_leaves(self.input_data, do_hash=True)
         self.mt.make_tree()
-        #self.processed_data = self.mt.get_merkle_root()
-        self.processed_data = self.mt.levels[0][0]
-        self.commitment = self.mt
+        self.processed_data = self.mt.merkle_root
+        self.commitment = self.mt.levels[:]
 
         return self.processed_data
 
