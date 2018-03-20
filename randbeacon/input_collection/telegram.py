@@ -13,9 +13,9 @@ class TelegramInputCollector(BaseInputCollector):
     def start(self, bot, update):
         bot.send_message(chat_id=update.message.chat_id, text="Any message you send to me will be included as input to the next beacon output.")
 
-    def echo(self, bot, update):
+    def get_input(self, bot, update):
         self.inputs.append(update.message.text)
-        print("Telegram:", update.message.text)
+        print("Telegram Received:", update.message.text)
         bot.send_message(chat_id=update.message.chat_id, text="Thank you for your input!")
 
     def collect(self, duration=None):
@@ -23,10 +23,11 @@ class TelegramInputCollector(BaseInputCollector):
         updater = Updater(token=self.apitoken)
         dispatcher = updater.dispatcher
         start_handler = CommandHandler('start', self.start)
-        echo_handler = MessageHandler(Filters.text, self.echo)
+        input_handler = MessageHandler(Filters.text, self.get_input)
         dispatcher.add_handler(start_handler)
-        dispatcher.add_handler(echo_handler)
+        dispatcher.add_handler(input_handler)
         updater.start_polling()
+        print("Running Telegram Bot")
         time.sleep(duration)
         updater.stop()
 
