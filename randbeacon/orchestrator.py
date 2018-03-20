@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from input_collection import SimpleTCPInputCollector, UrandomInputCollector
+from input_collection import SimpleTCPInputCollector, UrandomInputCollector, TelegramInputCollector
 from input_processing import MerkleTreeInputProcessor
 from computation import SlothComputation
 
-input_collectors = [SimpleTCPInputCollector(), UrandomInputCollector()]
+input_collectors = [TelegramInputCollector(), SimpleTCPInputCollector(), UrandomInputCollector()]
+
 
 input_processor = MerkleTreeInputProcessor()
 
