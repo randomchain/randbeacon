@@ -11,9 +11,15 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', ]
+requirements = [
+    'sloth',
+    'Click>=6.0',
+]
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = [
+    'setuptools_scm',
+    'pytest-runner',
+]
 
 test_requirements = ['pytest', ]
 
@@ -42,6 +48,7 @@ setup(
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
+    use_scm_version=True,
     keywords='randbeacon',
     name='randbeacon',
     packages=find_packages(include=['randbeacon']),
@@ -49,6 +56,5 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/randomchain/randbeacon',
-    version='0.1.0',
     zip_safe=False,
 )
