@@ -21,10 +21,20 @@ async def push_loop():
 
 @app.route("/", methods=["POST", ])
 async def give_input(request):
-    if request.body:
-        await input_queue.put(request.body)
-        return response.raw(request.body, status=200)
-    return response(status=400)
+    if request.json:
+        inp_bytes = b''
+        for encoding, inp_str in request.json.items():
+            try:
+                if encoding == 'hex':
+                    inp_bytes += bytes.fromhex(inp_str)
+                else:
+                    inp_bytes += inp_str.encode(encoding)
+            except Exception as e:
+                print("EXCEPTION!!", e)
+                return response.json({'message': "Invalid encoding-data_string pair"}, status=400)
+        await input_queue.put(inp_bytes)
+        return response.json({'message': "Input received"}, status=200)
+    return response.json({'message': "No input provided"}, status=400)
 
 
 @app.listener('after_server_start')

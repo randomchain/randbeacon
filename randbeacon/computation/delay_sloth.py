@@ -20,11 +20,11 @@ def compute(inp_data):
         bits=SLOTH_BITS,
         iterations=SLOTH_ITERATIONS
     )
-    log.info(f"Starting Sloth computation - bits: {SLOTH_BITS}, iterations: {SLOTH_ITERATIONS}")
+    log.info("Starting Sloth computation - bits: {}, iterations: {}".format(SLOTH_BITS, SLOTH_ITERATIONS))
     sloth.compute()
     sloth.wait()
-    log.info(f" === OUTPUT --> {sloth.final_hash} === ")
-    log.info(f" === WITNESS --> {sloth.witness} === ")
+    log.info(" === OUTPUT --> {} === ".format(sloth.final_hash))
+    log.info(" === WITNESS --> {} === ".format(sloth.witness))
 
 
 def start_compute_loop(pub, pull, timeout=5):
@@ -32,10 +32,10 @@ def start_compute_loop(pub, pull, timeout=5):
     while True:
         log.info("publishing process message")
         pub.send_multipart([b'process', b'meme'])
-        log.info(f"waiting {timeout} seconds for incoming data")
+        log.info("waiting {} seconds for incoming data".format(timeout))
         if pull.poll(timeout * 1000):
             inp_data = pull.recv()
-            log.info(f"Received input data --> {inp_data}")
+            log.info("Received input data --> {}".format(inp_data))
             compute(inp_data)
 
 

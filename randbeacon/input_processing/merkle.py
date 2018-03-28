@@ -3,28 +3,16 @@ import zmq
 from zmq import Context, Poller
 from logbook import Logger, StreamHandler
 import sys
+import click
 
 StreamHandler(sys.stdout).push_application()
 log = Logger('Merkle')
 
 ctx = Context.instance()
 
-pull = ctx.socket(zmq.PULL)
-pull.bind('tcp://*:12345')
-
-push = ctx.socket(zmq.PUSH)
-push.connect('tcp://localhost:11234')
-
-sub = ctx.socket(zmq.SUB)
-sub.connect('tcp://localhost:23456')
-sub.setsockopt(zmq.SUBSCRIBE, b'process')
 
 
-poller = Poller()
-poller.register(pull, zmq.POLLIN)
-poller.register(sub, zmq.POLLIN)
 
-catalog = {}
 mt = MerkleTools(hash_type="sha256")
 
 def process():
@@ -32,7 +20,10 @@ def process():
         raise AttributeError("Merkle tree has no leaves")
     mt.make_tree()
 
-def start_poll():
+def start_poll(pull, push, sub):
+    poller = Poller()
+    poller.register(pull, zmq.POLLIN)
+    poller.register(sub, zmq.POLLIN)
     while True:
         try:
             socks = dict(poller.poll())
@@ -55,4 +46,25 @@ def start_poll():
             mt.add_leaf(inp, do_hash=True)
             log.info('{} : New leaf -> {}...'.format(len(mt.leaves), inp[:20]))
 
-start_poll()
+@click.command()
+@click.option('--pull-bind', default="tcp://*:12345")
+@click.option('--push-connect', default="tcp://localhost:11234")
+@click.option('--sub-connect', default="tcp://localhost:23456")
+def main(pull_bind, push_connect, sub_connect):
+    log.info('Binding PULL socket to {}'.format(pull_bind))
+    pull = ctx.socket(zmq.PULL)
+    pull.bind(pull_bind)
+
+    log.info('Connecting PUSH socket to {}'.format(push_connect))
+    push = ctx.socket(zmq.PUSH)
+    push.connect(push_connect)
+
+    log.info('Connecting SUB socket to {}'.format(sub_connect))
+    sub = ctx.socket(zmq.SUB)
+    sub.connect(sub_connect)
+    sub.setsockopt(zmq.SUBSCRIBE, b'process')
+
+    start_poll(pull, push, sub)
+
+if __name__ == "__main__":
+    main(auto_envvar_prefix="INPUT_PROCESSOR_MERKLE")
