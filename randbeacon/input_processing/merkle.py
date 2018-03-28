@@ -1,38 +1,58 @@
 from merkletools import MerkleTools
+import zmq
+from zmq import Context, Poller
+from logbook import Logger, StreamHandler
+import sys
 
-class MerkleTreeInputProcessor(object):
+StreamHandler(sys.stdout).push_application()
+log = Logger('Merkle')
 
-    """Docstring for MerkleTreeProcessor. """
+ctx = Context.instance()
 
-    def __init__(self, input_data = None):
-        self.input_data = input_data
-        self.processed_data = None
-        self.commitment = None
-        self.catalog = {}
-        self.mt = MerkleTools(hash_type="sha256")
+pull = ctx.socket(zmq.PULL)
+pull.bind('tcp://*:12345')
 
-    def process(self):
-        self.mt.reset_tree()
-        assert self.input_data is not None, "Input data must be provided before processing"
-        assert self.input_data, "Input data cannot be empty"
-        self.mt.add_leaves(self.input_data, do_hash=True)
-        self.mt.make_tree()
-        self.processed_data = self.mt.merkle_root
-        self.commitment = self.mt.levels[:]
+push = ctx.socket(zmq.PUSH)
+push.connect('tcp://localhost:11234')
 
-        return self.processed_data
+sub = ctx.socket(zmq.SUB)
+sub.connect('tcp://localhost:23456')
+sub.setsockopt(zmq.SUBSCRIBE, b'process')
 
-    def commit(self):
-        if self.commitment is None:
-            self.process()
-        return self.commitment
 
-if __name__ == "__main__":
-    inp = [b'meme', b'pepe', b'trump']
+poller = Poller()
+poller.register(pull, zmq.POLLIN)
+poller.register(sub, zmq.POLLIN)
 
-    m = MerkleTreeInputProcessor(input_data=inp)
+catalog = {}
+mt = MerkleTools(hash_type="sha256")
 
-    m.process()
+def process():
+    if not mt.leaves:
+        raise AttributeError("Merkle tree has no leaves")
+    mt.make_tree()
 
-    print("PROCESSED DATA (Merkle root)")
-    print(m.processed_data.hex())
+def start_poll():
+    while True:
+        try:
+            socks = dict(poller.poll())
+        except KeyboardInterrupt:
+            return
+
+        if sub in socks:
+            log.info('SUB {}'.format(sub.recv_multipart()))
+            try:
+                log.info('Make Tree')
+                process()
+                log.info('Merkle root {}'.format(mt.merkle_root.hex()))
+                push.send(mt.merkle_root)
+                mt.reset_tree()
+            except Exception as e:
+                log.error("Unable to create merkle tree -> {}".format(e))
+
+        if pull in socks:
+            inp = pull.recv()
+            mt.add_leaf(inp, do_hash=True)
+            log.info('{} : New leaf -> {}...'.format(len(mt.leaves), inp[:20]))
+
+start_poll()
