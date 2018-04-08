@@ -8,7 +8,7 @@ from zmq import Context
 
 StreamHandler(sys.stdout).push_application()
 tcp_log = Logger('TCP Server')
-pub_log = Logger('Publisher')
+push_log = Logger('Pusher')
 
 ctx = Context.instance()
 inp_queue = Queue()
@@ -26,14 +26,14 @@ def start_tcp():
     server_thread.start()
     tcp_log.info("Running on {}:{}".format(*socketserver.server_address))
 
-def start_publisher():
-    pub = ctx.socket(zmq.PUB)
-    pub.bind('tcp://*:23456')
-    pub_log.info("Running on {}:{}".format("*", "23456"))
+def start_pusher():
+    push = ctx.socket(zmq.PUSH)
+    push.connect('tcp://localhost:12345')
+    push_log.info("Connected to {}:{}".format("localhost", 23456))
     while True:
         inp = inp_queue.get()
-        pub.send_multipart([b'', inp])
-        pub_log.debug("{}".format(inp))
+        push.send_multipart([b'\x00', inp])
+        push_log.debug("send -> {}".format(inp))
 
 start_tcp()
-start_publisher()
+start_pusher()

@@ -34,8 +34,8 @@ def start_compute_loop(pub, pull, timeout=5):
         pub.send_multipart([b'process', b'meme'])
         log.info("waiting {} seconds for incoming data".format(timeout))
         if pull.poll(timeout * 1000):
-            inp_data = pull.recv()
-            log.info("Received input data --> {}".format(inp_data))
+            header, inp_data = pull.recv_multipart()
+            log.info("recv -> {} | {}".format(header, inp_data))
             compute(inp_data)
 
 
