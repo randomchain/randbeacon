@@ -1,36 +1,39 @@
 from socketserver import ThreadingTCPServer, BaseRequestHandler
 import threading
-import time
 from queue import Queue
-from . import BaseInputCollector
+import sys
+from logbook import Logger, StreamHandler
+import zmq
+from zmq import Context
 
-INPUTS = []
+StreamHandler(sys.stdout).push_application()
+tcp_log = Logger('TCP Server')
+push_log = Logger('Pusher')
+
+ctx = Context.instance()
+inp_queue = Queue()
 
 class TCPInputRequestHandler(BaseRequestHandler):
     def handle(self):
         data = self.request.recv(1024).strip()
-        print("from {}\n -> {}".format(self.client_address[0], data))
-        INPUTS.append(data)
+        tcp_log.debug("from {} -> {}".format(self.client_address[0], data))
+        inp_queue.put(data)
         self.request.sendall(b"OK\0")
 
-class SimpleTCPInputCollector(BaseInputCollector):
+def start_tcp():
+    socketserver = ThreadingTCPServer(("0.0.0.0", 1337), TCPInputRequestHandler)
+    server_thread = threading.Thread(target=socketserver.serve_forever, daemon=True)
+    server_thread.start()
+    tcp_log.info("Running on {}:{}".format(*socketserver.server_address))
 
-    def __init__(self, host="localhost", port=1337):
-        self.inputs = []
-        self.host = host
-        self.port = port
+def start_pusher():
+    push = ctx.socket(zmq.PUSH)
+    push.connect('tcp://localhost:12345')
+    push_log.info("Connected to {}:{}".format("localhost", 23456))
+    while True:
+        inp = inp_queue.get()
+        push.send_multipart([b'\x00', inp])
+        push_log.debug("send -> {}".format(inp))
 
-    def collect(self, duration=None):
-        self.socketserver = ThreadingTCPServer((self.host, self.port), TCPInputRequestHandler)
-        self.server_thread = threading.Thread(target=self.socketserver.serve_forever, daemon=True)
-        self.server_thread.start()
-        print("Running TCP server on {}:{}".format(*self.socketserver.server_address))
-        time.sleep(duration)
-        self.socketserver.shutdown()
-        self.socketserver.server_close()
-
-    @property
-    def collected_inputs(self):
-        self.inputs[:] = INPUTS
-        INPUTS.clear()
-        return iter(self.inputs)
+start_tcp()
+start_pusher()

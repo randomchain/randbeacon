@@ -1,24 +1,64 @@
+import time
 from sloth import Sloth
-from . import BaseComputation
+import zmq
+from zmq import Context
+import click
+from logbook import Logger, StreamHandler
+import sys
 
 
-class SlothComputation(BaseComputation):
-
-    def __init__(self, input_data=None, sloth_bits=2048, sloth_iterations=10000):
-        super().__init__(input_data)
-        self.input_data = input_data
-        self.sloth_bits = sloth_bits
-        self.sloth_iterations = sloth_iterations
+StreamHandler(sys.stdout).push_application()
+log = Logger('CompSloth')
+ctx = Context.instance()
+SLOTH_BITS = None
+SLOTH_ITERATIONS = None
 
 
-    def compute(self):
-        self._sloth = Sloth(
-            data=self.input_data,
-            bits=self.sloth_bits,
-            iterations=self.sloth_iterations
-        )
-        self._sloth.compute()
-        self._sloth.wait()
-        self.output = self._sloth.final_hash
-        self.output_proof = self._sloth.witness
+def compute(inp_data):
+    sloth = Sloth(
+        data=inp_data,
+        bits=SLOTH_BITS,
+        iterations=SLOTH_ITERATIONS
+    )
+    log.info("Starting Sloth computation - bits: {}, iterations: {}".format(SLOTH_BITS, SLOTH_ITERATIONS))
+    sloth.compute()
+    sloth.wait()
+    log.info(" === OUTPUT --> {} === ".format(sloth.final_hash))
+    log.info(" === WITNESS --> {} === ".format(sloth.witness))
 
+
+def start_compute_loop(pub, pull, timeout=5):
+    log.info("Starting compute loop")
+    while True:
+        log.info("publishing process message")
+        pub.send_multipart([b'process', b'meme'])
+        log.info("waiting {} seconds for incoming data".format(timeout))
+        if pull.poll(timeout * 1000):
+            header, inp_data = pull.recv_multipart()
+            log.info("recv -> {} | {}".format(header, inp_data))
+            compute(inp_data)
+
+
+@click.command()
+@click.option('--pull-bind', default="tcp://*:11234", help="Pull socket bind")
+@click.option('--pub-bind', default="tcp://*:23456", help="Publish socket bind")
+@click.option('--sloth-bits', default=2048, help="Bits for sloth prime")
+@click.option('--sloth-iterations', default=5000, help="Iterations of permutation in sloth")
+def main(pull_bind, pub_bind, sloth_bits, sloth_iterations):
+    global SLOTH_BITS, SLOTH_ITERATIONS
+
+    SLOTH_BITS = sloth_bits
+    SLOTH_ITERATIONS = sloth_iterations
+
+    pull = ctx.socket(zmq.PULL)
+    pull.bind('tcp://*:11234')
+
+    pub = ctx.socket(zmq.PUB)
+    pub.bind('tcp://*:23456')
+
+    time.sleep(1)
+    start_compute_loop(pub, pull)
+
+
+if __name__ == "__main__":
+    main(auto_envvar_prefix="COMPUTATION_SLOTH")
