@@ -1,3 +1,4 @@
+import hashlib
 from os import urandom
 import sys
 import time
@@ -8,6 +9,7 @@ from logbook import StreamHandler, Logger
 StreamHandler(sys.stdout).push_application()
 log = Logger('urandom coll.')
 
+hasher = hashlib.sha512
 ctx = Context()
 push = ctx.socket(zmq.PUSH)
 push.connect('tcp://localhost:12345')
@@ -17,7 +19,8 @@ PUSH_INTERVAL = 5
 
 while True:
     inp = urandom(RANDOM_BYTES)
-    push.send_multipart([b'\x00', inp])
-    log.info('send -> {}...'.format(inp[:20].hex()))
+    inp_hash = hasher(inp).digest()
+    push.send(inp_hash)
+    log.info('send -> {}...'.format(inp_hash.hex()))
     time.sleep(PUSH_INTERVAL)
 

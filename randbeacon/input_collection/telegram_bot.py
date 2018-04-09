@@ -1,3 +1,4 @@
+import hashlib
 import threading
 import time, os
 #from queue import Queue
@@ -9,6 +10,7 @@ API_TOKEN = os.environ['TELEGRAM_API']
 
 updater = Updater(token=API_TOKEN)
 
+hasher = hashlib.sha512
 ctx = Context()
 push = ctx.socket(zmq.PUSH)
 push.connect('tcp://localhost:12345')
@@ -19,9 +21,11 @@ def start(bot, update):
 start_handler = CommandHandler('start', start)
 
 def get_input(bot, update):
-    push.send_multipart([b'\x00', update.message.text.encode('utf-8')])
+    inp_hash = hasher(update.message.text.encode('utf-8')).digest()
     print("Telegram Received:", update.message.text)
-    bot.send_message(chat_id=update.message.chat_id, text="Thank you for your input!")
+    push.send(inp_hash)
+    print("send -> {}".format(inp_hash.hex()))
+    bot.send_message(chat_id=update.message.chat_id, text="Thank you for your input!\n{}".format(inp_hash.hex()))
 
 input_handler = MessageHandler(Filters.text, get_input)
 updater.dispatcher.add_handler(start_handler)

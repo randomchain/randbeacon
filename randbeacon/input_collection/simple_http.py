@@ -22,7 +22,7 @@ async def push_loop():
     push.connect(PUSH_CONNECT)
     while True:
         inp = await input_queue.get()
-        await push.send_multipart([b'\x01', inp])
+        await push.send(inp)
 
 
 @app.route("/", methods=["POST", ])

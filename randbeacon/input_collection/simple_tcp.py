@@ -1,3 +1,4 @@
+import hashlib
 from socketserver import ThreadingTCPServer, BaseRequestHandler
 import threading
 from queue import Queue
@@ -12,13 +13,15 @@ push_log = Logger('Pusher')
 
 ctx = Context.instance()
 inp_queue = Queue()
+hasher = hashlib.sha512
 
 class TCPInputRequestHandler(BaseRequestHandler):
     def handle(self):
         data = self.request.recv(1024).strip()
         tcp_log.debug("from {} -> {}".format(self.client_address[0], data))
-        inp_queue.put(data)
-        self.request.sendall(b"OK\0")
+        inp_hash = hasher(data).digest()
+        inp_queue.put(inp_hash)
+        self.request.sendall(inp_hash)
 
 def start_tcp():
     socketserver = ThreadingTCPServer(("0.0.0.0", 1337), TCPInputRequestHandler)
@@ -32,7 +35,7 @@ def start_pusher():
     push_log.info("Connected to {}:{}".format("localhost", 23456))
     while True:
         inp = inp_queue.get()
-        push.send_multipart([b'\x00', inp])
+        push.send(inp)
         push_log.debug("send -> {}".format(inp))
 
 start_tcp()

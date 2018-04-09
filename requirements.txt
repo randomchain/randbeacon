@@ -1,2 +1,6 @@
+pyzmq
+msgpack
+sanic
 git+git://github.com/randomchain/pymerkletools@2.0.0#egg=merkletools
+git+git://github.com/randomchain/pysloth@0.3.0#egg=sloth
 python-telegram-bot==10.0.1

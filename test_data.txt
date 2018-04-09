@@ -1,1 +1,1 @@
-such random very string actually bytes wow
+{"ascii": "such random very string actually bytes wow"}

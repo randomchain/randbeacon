@@ -1,4 +1,5 @@
 from merkletools import MerkleTools
+import msgpack
 import zmq
 from zmq import Context, Poller
 import logbook
@@ -14,7 +15,6 @@ pull_log = Logger('pull')
 
 ctx = Context.instance()
 
-HASH_LEAVES = None
 mt = None
 
 def process():
@@ -23,6 +23,7 @@ def process():
     mt.make_tree()
 
 def start_poll(pull, push, sub):
+    seq_no = 0
     poller = Poller()
     poller.register(pull, zmq.POLLIN)
     poller.register(sub, zmq.POLLIN)
@@ -38,33 +39,30 @@ def start_poll(pull, push, sub):
                 log.info('Make Tree')
                 process()
                 log.info('Merkle root {}'.format(mt.merkle_root.hex()))
-                push.send_multipart([b"root", mt.merkle_root])
+                push.send_multipart([b'\x01', seq_no.to_bytes(2, byteorder='big'), mt.merkle_root])
                 push_log.info('merkle_root pushed')
-                # push.send_multipart([b"tree", mt.levels])
-                # push_log.info('merkle_tree pushed')
+                push.send_multipart([b'\x02', seq_no.to_bytes(2, byteorder='big'), msgpack.packb(mt.levels)])
+                push_log.info('merkle_tree pushed')
                 mt.reset_tree()
+                seq_no += 1
             except Exception as e:
                 log.error("Unable to create merkle tree -> {}".format(e))
 
         if pull in socks:
-            hashed, inp = pull.recv_multipart()
-            pull_log.info('recv -> {} | {}...'.format(hashed, inp[:20]))
-            pull_log.debug('{} | {}'.format(hashed, inp))
-            hashed = (hashed == b'\x01')
-            mt.add_leaf(inp, do_hash=not hashed)
-            log.info('leaves: {}, added {} leaf'.format(len(mt.leaves), 'pre hashed' if hashed else 'and hashed'))
+            inp = pull.recv()
+            pull_log.info('recv -> {}'.format(inp.hex()))
+            mt.add_leaf(inp, do_hash=False)
+            log.info('leaf added | leaves: {}'.format(len(mt.leaves)))
 
 @click.command()
 @click.option('--hash-algo', default="sha512")
-@click.option('--hash-leaves/--not-hash-leaves', default=False)
 @click.option('--pull-bind', default="tcp://*:12345")
 @click.option('--push-connect', default="tcp://localhost:11234")
 @click.option('--sub-connect', default="tcp://localhost:23456")
-def main(hash_algo, hash_leaves, pull_bind, push_connect, sub_connect):
-    global mt, HASH_LEAF
+def main(hash_algo, pull_bind, push_connect, sub_connect):
+    global mt
     mt = MerkleTools(hash_type=hash_algo)
-    HASH_LEAVES = hash_leaves
-    log.info('Hashing algo: {}, hash leaves: {}'.format(hash_algo, hash_leaves))
+    log.info('Tree using {} hashing algorithm'.format(hash_algo))
 
     pull_log.info('Binding PULL socket to {}'.format(pull_bind))
     pull = ctx.socket(zmq.PULL)
