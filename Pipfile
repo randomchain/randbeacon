@@ -1,24 +1,19 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 pyzmq = "*"
 msgpack = "*"
 Sanic = "*"
 merkletools = {git = "git://github.com/randomchain/pymerkletools", ref = "2.0.0"}
 sloth = {git = "git://github.com/randomchain/pysloth", ref = "0.4.1"}
 python-telegram-bot = "==10.0.1"
-
+click = "*"
+logbook = "*"
 
 [dev-packages]
 
-
-
 [requires]
-
 python_version = "3.6"
