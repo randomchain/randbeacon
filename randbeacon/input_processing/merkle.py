@@ -7,6 +7,9 @@ from logbook import Logger, StreamHandler
 import sys
 import click
 
+INPUT_MSG_HEADER = b'\x01'
+COMMITMENT_MSH_HEADER = b'\x02'
+
 StreamHandler(sys.stdout, level=logbook.INFO).push_application()
 log = Logger('merkle')
 sub_log = Logger('sub')
@@ -39,12 +42,23 @@ def start_poll(pull, push, sub):
                 log.info('Make Tree')
                 process()
                 log.info('Merkle root {}'.format(mt.merkle_root.hex()))
-                push.send_multipart([b'\x01', seq_no.to_bytes(2, byteorder='big'), mt.merkle_root])
+                push.send_multipart([
+                    INPUT_MSG_HEADER,
+                    seq_no.to_bytes(2, byteorder='big'),
+                    mt.merkle_root,
+                ])
                 push_log.info('merkle_root pushed')
-                push.send_multipart([b'\x02', seq_no.to_bytes(2, byteorder='big'), msgpack.packb(mt.levels)])
+                push.send_multipart([
+                    COMMITMENT_MSH_HEADER,
+                    seq_no.to_bytes(2, byteorder='big'),
+                    msgpack.packb(mt.levels),
+                ])
                 push_log.info('merkle_tree pushed')
                 mt.reset_tree()
-                seq_no += 1
+                if seq_no == 0xFFFF:
+                    seq_no = 0
+                else:
+                    seq_no += 1
             except Exception as e:
                 log.error("Unable to create merkle tree -> {}".format(e))
 
