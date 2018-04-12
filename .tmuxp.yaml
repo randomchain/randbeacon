@@ -1,0 +1,24 @@
+session_name: randbeacon
+windows:
+    - window_name: proxy
+      panes:
+        - shell_command:
+            - ./proxy stream tcp://*:3333 tcp://*:4444 tcp://*:3344 &
+            - pipenv run python3 snooper.py tcp://localhost:3344
+        - shell_command:
+            - ./proxy forward tcp://*:5555 tcp://*:6666 tcp://*:5566 &
+            - pipenv run python3 snooper.py tcp://localhost:5566
+    - window_name: input stuff
+      layout: even-vertical
+      panes:
+        - shell_command: pipenv run python3 randbeacon/input_collection/internal.py --push-connect tcp://localhost:3333
+        - shell_command: pipenv run python3 randbeacon/input_collection/simple_http.py --push-connect tcp://localhost:3333
+        - shell_command: pipenv run python3 randbeacon/input_collection/simple_tcp.py --push-connect tcp://localhost:3333
+    - window_name: middle stuff
+      panes:
+        - shell_command: pipenv run python3 randbeacon/input_processing/merkle.py --pull-type connect --pull-addr tcp://localhost:4444
+        - shell_command: pipenv run python3 randbeacon/computation/delay_sloth.py --pub-type connect --pub-addr tcp://localhost:5555
+    - window_name: publish stuff
+      panes:
+        - shell_command: pipenv run python3 snooper.py tcp://localhost:6666
+        - shell_command: pipenv run python3 randbeacon/publishing/json_dump.py --sub-connect tcp://localhost:6666 --json-output -
