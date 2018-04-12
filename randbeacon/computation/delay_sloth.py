@@ -58,25 +58,26 @@ def start_compute_loop(process_pub, pub, pull, timeout=5):
 
 
 @click.command()
-@click.option('--pull-bind', default="tcp://*:11234", help="Pull socket bind")
-@click.option('--pub-bind', default="tcp://*:33456", help="Publish socket bind")
-@click.option('--process-pub-bind', default="tcp://*:23456", help="Input processor Publish socket bind")
+@click.option('--pull-bind', default="tcp://*:22345", help="Pull socket bind")
+@click.option('--pub-addr', default="tcp://*:44567", help="Publish socket address")
+@click.option('--pub-type', type=click.Choice(['bind', 'connect']), default='bind', help="Publish socket type")
+@click.option('--process-pub-bind', default="tcp://*:33456", help="Input processor Publish socket bind")
 @click.option('--sloth-bits', default=2048, help="Bits for sloth prime")
 @click.option('--sloth-iterations', default=5000, help="Iterations of permutation in sloth")
-def main(pull_bind, pub_bind, process_pub_bind, sloth_bits, sloth_iterations):
+def main(pull_bind, pub_addr, pub_type, process_pub_bind, sloth_bits, sloth_iterations):
     global SLOTH_BITS, SLOTH_ITERATIONS
 
     SLOTH_BITS = sloth_bits
     SLOTH_ITERATIONS = sloth_iterations
 
     pull = ctx.socket(zmq.PULL)
-    pull.bind('tcp://*:11234')
+    pull.bind(pull_bind)
 
     process_pub = ctx.socket(zmq.PUB)
-    process_pub.bind('tcp://*:23456')
+    process_pub.bind(process_pub_bind)
 
     pub = ctx.socket(zmq.PUB)
-    pub.bind('tcp://*:33456')
+    getattr(pub, pub_type)(pub_addr)
 
     time.sleep(1)
     start_compute_loop(process_pub, pub, pull)

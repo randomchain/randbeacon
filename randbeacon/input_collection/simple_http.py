@@ -61,7 +61,7 @@ async def init_queue_and_zmq(app, loop):
 
 @click.command()
 @click.option('--hash-algo', default="sha512", help="Hashing algorithm to be used")
-@click.option('--push-connect', default="tcp://localhost:12345", help="Addr of input processor")
+@click.option('--push-connect', default="tcp://localhost:11234", help="Addr of streamer proxy")
 @click.option('--http-host', default="0.0.0.0", help="Host of http server")
 @click.option('--http-port', default=8080, help="Port of http server")
 def main(hash_algo, push_connect, http_host, http_port):

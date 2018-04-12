@@ -70,17 +70,18 @@ def start_poll(pull, push, sub):
 
 @click.command()
 @click.option('--hash-algo', default="sha512")
-@click.option('--pull-bind', default="tcp://*:12345")
-@click.option('--push-connect', default="tcp://localhost:11234")
-@click.option('--sub-connect', default="tcp://localhost:23456")
-def main(hash_algo, pull_bind, push_connect, sub_connect):
+@click.option('--pull-addr', default="tcp://*:11234")
+@click.option('--pull-type', type=click.Choice(['bind', 'connect']), default='bind')
+@click.option('--push-connect', default="tcp://localhost:22345")
+@click.option('--sub-connect', default="tcp://localhost:33456")
+def main(hash_algo, pull_addr, pull_type, push_connect, sub_connect):
     global mt
     mt = MerkleTools(hash_type=hash_algo)
     log.info('Tree using {} hashing algorithm'.format(hash_algo))
 
-    pull_log.info('Binding PULL socket to {}'.format(pull_bind))
     pull = ctx.socket(zmq.PULL)
-    pull.bind(pull_bind)
+    pull_log.info('{} PULL socket to {}'.format('Binding' if pull_type == 'bind' else 'Connecting', pull_addr))
+    getattr(pull, pull_type)(pull_addr)
 
     push_log.info('Connecting PUSH socket to {}'.format(push_connect))
     push = ctx.socket(zmq.PUSH)
