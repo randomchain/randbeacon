@@ -8,10 +8,13 @@
 
 int main (int argc, char* argv[])
 {
+    void *context = zmq_ctx_new();
+
     int frontend_sock_t = 0;
     int backend_sock_t  = 0;
     char* frontend_addr = NULL;
     char* backend_addr  = NULL;
+    void* capture = NULL;
     if (!(argc > 1)) {
         puts("first argument must be either 'forward' or 'stream'");
         exit(1);
@@ -29,15 +32,19 @@ int main (int argc, char* argv[])
             exit(1);
         }
     }
-    if (argc == 4) {
+    if (argc > 3) {
         frontend_addr = argv[2];
         backend_addr  = argv[3];
     } else {
         frontend_addr = "tcp://*:5555";
         backend_addr  = "tcp://*:6666";
     }
+    if (argc > 4) {
+        capture = zmq_socket(context, ZMQ_PUB);
+        printf("Capture -> %s\n", argv[4]);
+        assert(zmq_bind(capture, argv[4]) == 0);
+    }
 
-    void *context = zmq_ctx_new ();
 
     void *frontend = zmq_socket(context, frontend_sock_t);
     int rc = zmq_bind(frontend, frontend_addr);
@@ -51,7 +58,7 @@ int main (int argc, char* argv[])
 
     //  Run the proxy until the user interrupts us
     puts("Starting proxy...");
-    zmq_proxy(frontend, backend, NULL);
+    zmq_proxy(frontend, backend, capture);
 
     zmq_close(frontend);
     zmq_close(backend);
