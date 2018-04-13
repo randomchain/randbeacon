@@ -7,6 +7,7 @@ import ujson as json
 app = Flask(__name__)
 
 JSON_FILE = '../output.json'
+LINES_PER_SEQ = 3
 
 def read_latest_data():
     data = defaultdict(dict)
@@ -20,6 +21,15 @@ def read_latest_data():
             'data': line_data['data'],
         }
     return latest_output_seq_no, data
+
+def read_seq_no(seq_no):
+    with open(JSON_FILE, 'r') as file:
+        first_line = json.loads(file.readline())
+        found_seq_no = first_line['seq_no']
+        target_line = (seq_no - found_seq_no) * 3
+        file.seek(target_line - 1, 0)
+        print(file.readline())
+
 
 @app.route('/')
 def latest_full():
@@ -39,9 +49,13 @@ def latest_commit():
         'seq_no': latest_output_seq_no + 1,
     })
 
-# @app.route('/<int:seq_no>')
-# def get_by_seq_no(seq_no):
-#     pass
+@app.route('/merkle/<int:seq_no>')
+def merkle(seq_no):
+    pass
+
+@app.route('/<int:seq_no>')
+def get_by_seq_no(seq_no):
+    read_seq_no(seq_no)
 
 # @app.route('/<str:output_hash>')
 # def get_by_output_hash(output_hash):
