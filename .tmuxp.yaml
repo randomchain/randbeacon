@@ -21,4 +21,4 @@ windows:
     - window_name: publish stuff
       panes:
         - shell_command: pipenv run python3 snooper.py tcp://localhost:6666
-        - shell_command: pipenv run python3 randbeacon/publishing/json_dump.py --sub-connect tcp://localhost:6666 --json-output -
+        - shell_command: pipenv run python3 randbeacon/publishing/json_dump.py --sub-connect tcp://localhost:6666 --json-output output.json
