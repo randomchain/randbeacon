@@ -1,20 +1,19 @@
-from merkletools import MerkleTools
-import msgpack
-import zmq
-from zmq import Context, Poller
-import logbook
-from logbook import Logger, StreamHandler
+import enum
 import sys
 import click
+import logbook
+import msgpack
+import zmq
+from logbook import Logger, StreamHandler
+from merkletools import MerkleTools
+from zmq import Context, Poller
 
-INPUT_MSG_HEADER = b'\x01'
-COMMITMENT_MSH_HEADER = b'\x02'
+class MessageType(enum.Enum):
+    INPUT = b'\x01'
+    COMMIT = b'\x02'
 
 StreamHandler(sys.stdout, level=logbook.INFO).push_application()
-log = Logger('merkle')
-sub_log = Logger('sub')
-push_log = Logger('push')
-pull_log = Logger('pull')
+log = Logger('Merkle')
 
 ctx = Context.instance()
 
@@ -37,24 +36,29 @@ def start_poll(pull, push, sub):
             return
 
         if sub in socks:
-            sub_log.info('recv -> {}'.format(sub.recv_multipart()))
+            log.debug('recv -> {}'.format(sub.recv_multipart()))
             try:
                 log.info('Make Tree')
                 process()
-                log.info('Merkle root {}'.format(mt.merkle_root.hex()))
+                log.debug('Merkle root {}'.format(mt.merkle_root.hex()))
                 push.send_multipart([
-                    INPUT_MSG_HEADER,
+                    MessageType.INPUT.value,
                     seq_no.to_bytes(2, byteorder='big'),
                     mt.merkle_root,
                 ])
-                push_log.info('merkle_root pushed')
+                log.debug('send -> {} | {} | {}', MessageType.INPUT.name, seq_no, mt.merkle_root.hex())
+
+                data = msgpack.packb(mt.levels)
                 push.send_multipart([
-                    COMMITMENT_MSH_HEADER,
+                    MessageType.COMMIT.value,
                     seq_no.to_bytes(2, byteorder='big'),
-                    msgpack.packb(mt.levels),
+                    data,
                 ])
-                push_log.info('merkle_tree pushed')
+                log.debug('send -> {} | {} | {}...', MessageType.COMMIT.name, seq_no, data.hex()[:20])
+
                 mt.reset_tree()
+                log.info("Reset tree")
+
                 if seq_no == 0xFFFF:
                     seq_no = 0
                 else:
@@ -64,7 +68,7 @@ def start_poll(pull, push, sub):
 
         if pull in socks:
             inp = pull.recv()
-            pull_log.info('recv -> {}'.format(inp.hex()))
+            log.debug('recv -> {}'.format(inp.hex()))
             mt.add_leaf(inp, do_hash=False)
             log.info('leaf added | leaves: {}'.format(len(mt.leaves)))
 
@@ -80,14 +84,14 @@ def main(hash_algo, pull_addr, pull_type, push_connect, sub_connect):
     log.info('Tree using {} hashing algorithm'.format(hash_algo))
 
     pull = ctx.socket(zmq.PULL)
-    pull_log.info('{} PULL socket to {}'.format('Binding' if pull_type == 'bind' else 'Connecting', pull_addr))
+    log.info('{} PULL socket to {}'.format('Binding' if pull_type == 'bind' else 'Connecting', pull_addr))
     getattr(pull, pull_type)(pull_addr)
 
-    push_log.info('Connecting PUSH socket to {}'.format(push_connect))
+    log.info('Connecting PUSH socket to {}'.format(push_connect))
     push = ctx.socket(zmq.PUSH)
     push.connect(push_connect)
 
-    sub_log.info('Connecting SUB socket to {}'.format(sub_connect))
+    log.info('Connecting SUB socket to {}'.format(sub_connect))
     sub = ctx.socket(zmq.SUB)
     sub.connect(sub_connect)
     sub.setsockopt(zmq.SUBSCRIBE, b'process')
