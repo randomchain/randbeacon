@@ -61,4 +61,4 @@ def main(hash_algo, push_connect, tcp_host, tcp_port):
     start_pusher()
 
 if __name__ == "__main__":
-    main(auto_envvar_prefix="INPUT_COLLECTOR_HTTP")
+    main(auto_envvar_prefix="INPUT_COLLECTOR_TCP")
