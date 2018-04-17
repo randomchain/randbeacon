@@ -2,21 +2,16 @@ import enum
 import sys
 from functools import reduce
 import hashlib
-from hashlib import sha512
 from operator import concat
-
 import click
 import logbook
 import msgpack
 import zmq
-from logbook import Logger, StreamHandler
+from logbook import Logger, StreamHandler, DEBUG, INFO
 from zmq import Context, Poller
+from ..utils import MessageType, HashChecker
 
-class MessageType(enum.Enum):
-    INPUT = b'\x01'
-    COMMIT = b'\x02'
 
-StreamHandler(sys.stdout, level=logbook.DEBUG).push_application()
 log = Logger('Concat')
 
 ctx = Context.instance()
@@ -30,7 +25,7 @@ def process():
     processed_data = reduce(concat, INPUT_DATA)
     return processed_data
 
-def start_poll(pull, push, sub):
+def start_poll(pull, push, sub, hash_checker):
     global INPUT_DATA
     seq_no = 0
     poller = Poller()
@@ -78,6 +73,11 @@ def start_poll(pull, push, sub):
         if pull in socks:
             inp = pull.recv()
             log.debug('recv -> {}'.format(inp.hex()))
+            try:
+                hash_checker.check(inp)
+            except:
+                log.warn('Bad hash received! -> {}', inp)
+                continue
             INPUT_DATA.append(inp)
             log.info('Input added | Elements: {}'.format(len(INPUT_DATA)))
 
@@ -87,9 +87,12 @@ def start_poll(pull, push, sub):
 @click.option('--pull-type', type=click.Choice(['bind', 'connect']), default='bind')
 @click.option('--push-connect', default="tcp://localhost:22345")
 @click.option('--sub-connect', default="tcp://localhost:33456")
-def main(hash_algo, pull_addr, pull_type, push_connect, sub_connect):
+@click.option('-v', '--verbose', is_flag=True, default=False)
+def main(hash_algo, pull_addr, pull_type, push_connect, sub_connect, verbose):
     global HASHER
+    StreamHandler(sys.stdout, level=logbook.DEBUG if verbose else logbook.INFO).push_application()
     log.info('Concat using {} hashing algorithm'.format(hash_algo))
+    hash_checker = HashChecker(hash_algo)
 
     HASHER = getattr(hashlib, hash_algo)
 
@@ -106,7 +109,7 @@ def main(hash_algo, pull_addr, pull_type, push_connect, sub_connect):
     sub.connect(sub_connect)
     sub.setsockopt(zmq.SUBSCRIBE, b'process')
 
-    start_poll(pull, push, sub)
+    start_poll(pull, push, sub, hash_checker)
 
 if __name__ == "__main__":
     main(auto_envvar_prefix="INPUT_PROCESSOR_CONCAT")

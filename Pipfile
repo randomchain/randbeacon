@@ -1,20 +1,28 @@
 [[source]]
+
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
+
 [packages]
+
 pyzmq = "*"
 msgpack = "*"
-Sanic = "*"
-merkletools = {git = "git://github.com/randomchain/pymerkletools", ref = "2.0.0"}
-sloth = {git = "git://github.com/randomchain/pysloth", ref = "0.5.0"}
+sanic = "*"
+merkletools = {git = "git://github.com/randomchain/pymerkletools.git", ref = "2.0.0", editable = true}
+pysloth = {git = "git://github.com/randomchain/pysloth.git", ref = "0.5.0", editable = true}
 python-telegram-bot = "==10.0.1"
 click = "*"
 logbook = "*"
 
+
 [dev-packages]
+
 pylint = "*"
+"e1839a8" = {path = ".", editable = true}
+
 
 [requires]
+
 python_version = "3.6"

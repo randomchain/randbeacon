@@ -1,11 +1,12 @@
 import time
+import sys
 import msgpack
 from sloth import Sloth
 import zmq
 from zmq import Context
 import click
 from logbook import Logger, StreamHandler
-import sys
+from ..utils import MessageType, HashChecker
 
 
 StreamHandler(sys.stdout).push_application()
@@ -34,24 +35,26 @@ def start_compute_loop(process_pub, pub, pull, timeout=5):
         log.info("waiting {} seconds for incoming data".format(timeout))
         if pull.poll(timeout * 1000):
             header, seq_no_a, inp_data = pull.recv_multipart()
-            log.info("recv -> {} | {} | {}".format(header, seq_no_a, inp_data))
-            if header != b'\x01':
+            header = MessageType(header)
+            log.info("recv -> {} | {} | {}".format(header.name, seq_no_a, inp_data))
+            if header != MessageType.INPUT:
                 log.error("Expected to receive compute data, not commitment")
                 return
             header, seq_no_b, commit_data = pull.recv_multipart()
+            header = MessageType(header)
             commit_data_obj = msgpack.unpackb(commit_data)
-            log.info("recv -> {} | {} | merkle height {}".format(header, seq_no_b, len(commit_data_obj)))
-            if header != b'\x02':
+            log.info("recv -> {} | {} | merkle height {}".format(header.name, seq_no_b, len(commit_data_obj)))
+            if header != MessageType.COMMIT:
                 log.error("Expected to receive commitment, not compute data")
                 return
             if seq_no_a != seq_no_b:
                 log.error("Got unpaired sequence numbers!")
                 return
             sloth = init_compute(inp_data)
-            pub.send_multipart([header, seq_no_b, commit_data])
+            pub.send_multipart([header.value, seq_no_b, commit_data])
             sloth.wait()
-            pub.send_multipart([b'\x03', seq_no_b, sloth.final_hash])
-            pub.send_multipart([b'\x04', seq_no_b, sloth.witness])
+            pub.send_multipart([MessageType.OUTPUT.value, seq_no_b, sloth.final_hash])
+            pub.send_multipart([MessageType.PROOF.value, seq_no_b, sloth.witness])
             log.info(" === OUTPUT --> {} === ".format(sloth.final_hash))
             log.info(" === WITNESS --> {} === ".format(sloth.witness))
 
