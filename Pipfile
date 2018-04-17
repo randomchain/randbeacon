@@ -8,7 +8,7 @@ pyzmq = "*"
 msgpack = "*"
 Sanic = "*"
 merkletools = {git = "git://github.com/randomchain/pymerkletools", ref = "2.0.0"}
-sloth = {git = "git://github.com/randomchain/pysloth", ref = "0.4.1"}
+sloth = {git = "git://github.com/randomchain/pysloth", ref = "0.5.0"}
 python-telegram-bot = "==10.0.1"
 click = "*"
 logbook = "*"
