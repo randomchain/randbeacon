@@ -106,3 +106,4 @@ venv.bak/
 .vscode/settings.json
 output.json
 proxy/proxy
+*.o
