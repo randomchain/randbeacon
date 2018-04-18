@@ -1,13 +1,15 @@
 from collections import defaultdict
+from functools import lru_cache
 from pprint import pprint
-from flask import Flask, redirect, render_template_string, jsonify
+from flask import Flask, redirect, render_template_string, jsonify, abort
 import sh
 import ujson as json
+import msgpack
+from merkletools import MerkleTools
 
 app = Flask(__name__)
 
 JSON_FILE = '../output.json'
-LINES_PER_SEQ = 3
 
 def read_latest_data():
     data = defaultdict(dict)
@@ -22,13 +24,18 @@ def read_latest_data():
         }
     return latest_output_seq_no, data
 
+@lru_cache()
 def read_seq_no(seq_no):
+    seq_data = dict()
     with open(JSON_FILE, 'r') as file:
-        first_line = json.loads(file.readline())
-        found_seq_no = first_line['seq_no']
-        target_line = (seq_no - found_seq_no) * 3
-        file.seek(target_line - 1, 0)
-        print(file.readline())
+        for line in file:
+            data = json.loads(line)
+            if data['seq_no'] == seq_no:
+                seq_data[data['type']] = {
+                    'timestamp': data['timestamp'],
+                    'data': data['data'],
+                }
+    return seq_data
 
 
 @app.route('/')
@@ -51,11 +58,20 @@ def latest_commit():
 
 @app.route('/merkle/<int:seq_no>')
 def merkle(seq_no):
-    pass
+    data = read_seq_no(seq_no)
+    if not data:
+        return abort(404)
+    commit = data['COMMIT']['data']
+    # mt = MerkleTools(hash_type='sha512')
+    # mt.levels = msgpack.unpackb(bytes.fromhex(commit))
+    levels = msgpack.unpackb(bytes.fromhex(commit))
+    for i, level in enumerate(levels):
+        levels[i] = list(map(lambda v: v.hex(), level))
+    return jsonify(levels)
 
 @app.route('/<int:seq_no>')
 def get_by_seq_no(seq_no):
-    read_seq_no(seq_no)
+    return jsonify(read_seq_no(seq_no))
 
 # @app.route('/<str:output_hash>')
 # def get_by_output_hash(output_hash):
@@ -63,4 +79,3 @@ def get_by_seq_no(seq_no):
 
 if __name__ == "__main__":
     app.run('0.0.0.0', 5050)
-
