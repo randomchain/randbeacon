@@ -1,4 +1,5 @@
 import datetime
+import os
 import sys
 import enum
 import json
@@ -11,7 +12,7 @@ from logbook import StreamHandler, Logger
 StreamHandler(sys.stdout).push_application()
 log = Logger('json')
 
-FILE = None
+DIR = None
 
 
 class EntryType(enum.Enum):
@@ -20,7 +21,7 @@ class EntryType(enum.Enum):
     PROOFS = b'\x04'
 
 
-def update_file(entry_type, seq_no, data):
+def update_file(seq_no, entry_type, data):
     timestamp = str(datetime.datetime.utcnow())
     try:
         data = data.decode('ascii')
@@ -28,15 +29,22 @@ def update_file(entry_type, seq_no, data):
     except:
         data = data.hex()
         log.debug("data decoded as hex")
-    line = json.dumps({
-        'timestamp': timestamp,
-        'type': entry_type,
-        'seq_no': seq_no,
-        'data': data,
-    })
-    with click.open_file(FILE, mode='a' if FILE != '-' else 'w') as fh:
-        fh.write(line + "\n")
-        log.debug("persisting json -> {}", line)
+    data_dict = {
+        entry_type.name: {
+            'timestamp': timestamp,
+            'data': data,
+        },
+    }
+    log.debug('new data -> seq no: {} | {}', seq_no, data_dict)
+    if DIR:
+        file_path = os.path.join(DIR, str(seq_no) + '.json')
+        if os.path.exists(file_path):
+            with open(file_path, mode='r') as fh:
+                data_dict.update(json.loads(fh.read()))
+                log.debug('merged with existing data: seq no {}', seq_no)
+        with open(file_path, mode='w') as fh:
+            fh.write(json.dumps(data_dict) + "\n")
+            log.debug('json file written: seq no {}', seq_no)
 
 
 def fetch_loop(sub):
@@ -52,15 +60,24 @@ def fetch_loop(sub):
         except:
             log.warn('Ignoring bad message -> {} | {} | {}', header, seq_no, data)
             continue
-        update_file(entry_type.name, seq_no, data)
+        update_file(seq_no, entry_type, data)
 
 
 @click.command()
 @click.option('--sub-connect', default="tcp://localhost:44567")
-@click.option('--json-output', default='-')
-def main(sub_connect, json_output):
-    global FILE
-    FILE = json_output
+@click.option('--json-output-dir', default=None)
+def main(sub_connect, json_output_dir):
+    global DIR
+    DIR = json_output_dir
+
+    if DIR is None:
+        log.info('No output dir... dry run activated')
+    else:
+        if os.path.exists(DIR):
+            log.info('Output dir: "{}" selected', DIR)
+        else:
+            os.makedirs(DIR)
+            log.info('Output dir: "{}" created', DIR)
 
     ctx = Context()
     sub = ctx.socket(zmq.SUB)
