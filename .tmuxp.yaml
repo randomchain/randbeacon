@@ -14,6 +14,10 @@ windows:
         - shell_command: pipenv run python3 -m randbeacon.input_collection.internal --push-connect tcp://localhost:3333
         - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_http --push-connect tcp://localhost:3333
         - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_tcp --push-connect tcp://localhost:3333
+      # panes:
+      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.spamming --push-connect tcp://localhost:3333 --spam-interval 0.1 --no-random
+      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.spamming --push-connect tcp://localhost:3333 --spam-interval 0.1 --no-random
+      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.spamming --push-connect tcp://localhost:3333 --spam-interval 0.1 --no-random
     - window_name: middle stuff
       panes:
         - shell_command: pipenv run python3 -m randbeacon.input_processing.merkle --pull-type connect --pull-addr tcp://localhost:4444
