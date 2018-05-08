@@ -24,7 +24,7 @@ def process():
     mt.make_tree()
 
 
-def start_poll(pull, router, hash_checker, gather_time=5):
+def start_poll(pull, router, hash_checker, gather_time):
     seq_no = 0
     last_process = time.time()
     poller = Poller()
@@ -105,12 +105,13 @@ def start_poll(pull, router, hash_checker, gather_time=5):
 
 @click.command()
 @click.option('--hash-algo', default="sha512")
+@click.option('--gather-time', default=5)
 @click.option('--pull-addr', default="tcp://*:11234")
 @click.option('--pull-type', type=click.Choice(['bind', 'connect']), default='bind')
 @click.option('--router-addr', default="tcp://*:22345")
 @click.option('--router-type', type=click.Choice(['bind', 'connect']), default='bind')
 @click.option('-v', '--verbose', is_flag=True, default=False)
-def main(hash_algo, pull_addr, pull_type, router_addr, router_type, verbose):
+def main(hash_algo, gather_time, pull_addr, pull_type, router_addr, router_type, verbose):
     global mt
     StreamHandler(sys.stdout, level='DEBUG' if verbose else 'INFO').push_application()
     mt = MerkleTools(hash_type=hash_algo)
@@ -125,7 +126,7 @@ def main(hash_algo, pull_addr, pull_type, router_addr, router_type, verbose):
     log.info('{} ROUTER socket to {}'.format('Binding' if router_type == 'bind' else 'Connecting', router_addr))
     getattr(router, router_type)(router_addr)
 
-    start_poll(pull, router, hash_checker)
+    start_poll(pull, router, hash_checker, gather_time)
 
 if __name__ == "__main__":
     main(auto_envvar_prefix="INPUT_PROCESSOR_MERKLE")

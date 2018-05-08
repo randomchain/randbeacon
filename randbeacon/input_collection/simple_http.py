@@ -35,7 +35,7 @@ async def give_input(request):
                     inp_bytes += bytes.fromhex(inp_str)
                 else:
                     inp_bytes += inp_str.encode(encoding)
-                log.debug("enc -> {}, value -> {}".format(encoding, inp_str[:20]))
+                log.debug("enc -> {}, length: {}, value -> {}".format(encoding, len(inp_str), inp_str[:20]))
             except Exception as e:
                 log.error(e)
                 return response.json({'message': "Invalid encoding-data_string pair"}, status=400)
