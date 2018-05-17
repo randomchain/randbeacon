@@ -1,0 +1,22 @@
+Input Collector     ->      Input Processor
+
+    IC -> IP: INPUT DATA
+
+
+Input Processor     --      Computaiton Node
+
+    C -> I: READY
+    I -> C: OK
+    ...
+    I -> C: INPUT DATA
+    I -> C: COMMITMENT DATA
+    C -> I: OK | ERROR
+
+
+Computation Node    ->      Publisher
+
+    C -> P: COMMITMENT
+    ...
+    C -> P: OUTPUT
+    C -> P: PROOFS
+
