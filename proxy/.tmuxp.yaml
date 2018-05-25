@@ -1,0 +1,17 @@
+session_name: randbeacon
+windows:
+    - window_name: proxy
+      panes:
+        - shell_command: ./proxy stream "tcp://*:5555" "tcp://*:6666" #"tcp://*:5566" &
+            # - pipenv run python3 proxy/snooper.py tcp://localhost:5566
+    - window_name: rest
+      panes:
+        - shell_command: python3 ./gopub.py "tcp://*:1337"
+        - shell_command: python3 ./pushspam.py tcp://localhost:5555 tcp://localhost:1337
+        - shell_command: python3 ./pushspam.py tcp://localhost:5555 tcp://localhost:1337
+        - shell_command: python3 ./pushspam.py tcp://localhost:5555 tcp://localhost:1337
+        - shell_command: python3 ./pushspam.py tcp://localhost:5555 tcp://localhost:1337
+        - shell_command: python3 ./pullrecv.py tcp://localhost:6666 tcp://localhost:1337
+        - shell_command: python3 ./pullrecv.py tcp://localhost:6666 tcp://localhost:1337
+        # - shell_command: python3 ./subrecv.py tcp://localhost:5555 tcp://localhost:1337
+      layout: even-vertical
