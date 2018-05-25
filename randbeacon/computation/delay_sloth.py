@@ -9,7 +9,6 @@ from logbook import Logger, StreamHandler
 from ..utils import MessageType, Status, HashChecker
 
 
-StreamHandler(sys.stdout).push_application()
 log = Logger('CompSloth')
 ctx = Context.instance()
 SLOTH_BITS = None
@@ -22,7 +21,8 @@ def init_compute(inp_data):
         bits=SLOTH_BITS,
         iterations=SLOTH_ITERATIONS
     )
-    log.info("Starting Sloth computation - bits: {}, iterations: {}".format(SLOTH_BITS, SLOTH_ITERATIONS))
+    log.info("Starting Sloth computation - bits: {}, iterations: {}",
+             SLOTH_BITS, SLOTH_ITERATIONS)
     sloth.compute()
     return sloth
 
@@ -32,22 +32,22 @@ def start_compute_loop(dealer, pub, timeout=5):
     while True:
         log.info("Sending 'ready' message")
         dealer.send_multipart([MessageType.STATUS, Status.READY])
-        log.info("waiting {} seconds for OK".format(timeout))
+        log.info("waiting {} seconds for OK", timeout)
         if dealer.poll(timeout * 1000):
             msg_type, status = dealer.recv_multipart()
             if msg_type != MessageType.STATUS or status != Status.OK:
                 continue
             header, seq_no_a, inp_data = dealer.recv_multipart()
             header = MessageType(header)
-            log.info("recv -> {} | {} | {}".format(header.name, seq_no_a, inp_data))
+            log.info("recv -> {} | {} | {}", header.name, seq_no_a, inp_data)
             if header != MessageType.INPUT:
                 dealer.send_multipart([MessageType.STATUS, Status.ERROR])
                 log.error("Expected to receive compute data, not commitment")
                 return
             header, seq_no_b, commit_data = dealer.recv_multipart()
             header = MessageType(header)
+            log.info("recv -> {} | {} | {}", header.name, seq_no_b, commit_data)
             commit_data_obj = msgpack.unpackb(commit_data)
-            log.info("recv -> {} | {} | leaves {}".format(header.name, seq_no_b, len(commit_data_obj)))
             if header != MessageType.COMMIT:
                 dealer.send_multipart([MessageType.STATUS, Status.ERROR])
                 log.error("Expected to receive commitment, not compute data")
@@ -56,14 +56,19 @@ def start_compute_loop(dealer, pub, timeout=5):
                 dealer.send_multipart([MessageType.STATUS, Status.ERROR])
                 log.error("Got unpaired sequence numbers!")
                 return
-            dealer.send_multipart([MessageType.STATUS, Status.OK])
             sloth = init_compute(inp_data)
+            dealer.send_multipart([MessageType.STATUS, Status.OK])
             pub.send_multipart([header, seq_no_b, commit_data])
             sloth.wait()
             pub.send_multipart([MessageType.OUTPUT, seq_no_b, sloth.final_hash])
-            pub.send_multipart([MessageType.PROOF, seq_no_b, sloth.witness])
-            log.info(" === OUTPUT --> {} === ".format(sloth.final_hash))
-            log.info(" === WITNESS --> {} === ".format(sloth.witness))
+            proof_data = msgpack.packb({'witness': sloth.witness, 'bits': sloth.bits, 'iterations': sloth.iterations})
+            pub.send_multipart([MessageType.PROOF, seq_no_b, proof_data])
+            log.info(" === OUTPUT --> {} === ", sloth.final_hash)
+            log.info(" === WITNESS --> {} === ", sloth.witness)
+
+            sloth.verify()
+            sloth.wait()
+            log.info("VALID? {}", sloth.valid)
 
 
 
@@ -74,9 +79,10 @@ def start_compute_loop(dealer, pub, timeout=5):
 @click.option('--pub-type', type=click.Choice(['bind', 'connect']), default='bind', help="Publish socket type")
 @click.option('--sloth-bits', default=2048, help="Bits for sloth prime")
 @click.option('--sloth-iterations', default=5000, help="Iterations of permutation in sloth")
-def main(identity, dealer_connect, pub_addr, pub_type, sloth_bits, sloth_iterations):
+@click.option('-v', '--verbose', is_flag=True, default=False)
+def main(identity, dealer_connect, pub_addr, pub_type, sloth_bits, sloth_iterations, verbose):
     global SLOTH_BITS, SLOTH_ITERATIONS
-
+    StreamHandler(sys.stdout, level='DEBUG' if verbose else 'INFO').push_application()
     SLOTH_BITS = sloth_bits
     SLOTH_ITERATIONS = sloth_iterations
 
