@@ -3,7 +3,7 @@ Input Collector     ->      Input Processor
     IC -> IP: INPUT DATA
 
 
-Input Processor     --      Computaiton Node
+Input Processor     --      Computation Node
 
     C -> I: READY
     I -> C: OK
