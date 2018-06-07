@@ -41,6 +41,8 @@ class BaseComputation:
         log.info("Wait for computation to finish")
 
     def recv_message(self, expected_header, expected_data_len):
+        if not self.dealer.poll(self.timeout * 1000):
+            raise Exception("Timeout while waiting to receive " + expected_header.name)
         header, *data = self.dealer.recv_multipart()
         header = MessageType(header)
         log.info(
