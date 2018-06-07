@@ -9,12 +9,12 @@ windows:
             - proxy/proxy forward "tcp://*:5555" "tcp://*:6666" "tcp://*:5566" &
             - pipenv run python3 proxy/snooper.py tcp://localhost:5566
     - window_name: input stuff
-      # panes:
-      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.internal --push-connect tcp://localhost:3333
-      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_http --push-connect tcp://localhost:3333
-      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_tcp --push-connect tcp://localhost:3333
       panes:
-        - shell_command: pipenv run python3 -m randbeacon.input_collection.spamming --push-connect tcp://localhost:3333 --spam-interval 2 --random
+        - shell_command: pipenv run python3 -m randbeacon.input_collection.urandom --push-connect tcp://localhost:3333
+        - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_http --push-connect tcp://localhost:3333
+        - shell_command: pipenv run python3 -m randbeacon.input_collection.simple_tcp --push-connect tcp://localhost:3333
+      # panes:
+      #   - shell_command: pipenv run python3 -m randbeacon.input_collection.spamming --push-connect tcp://localhost:3333 --spam-interval 2 --random
       layout: even-vertical
     - window_name: middle stuff
       panes:
