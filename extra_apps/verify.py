@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os
 from pprint import pprint
 import click
@@ -39,15 +42,37 @@ def unpack_sequence(json_file):
 
 @click.command()
 @click.argument('json', type=click.File())
-def main(json):
+@click.option('--inp', type=str, default=None)
+@click.option('--verbose', '-v', is_flag=True, default=False)
+def main(json, inp, verbose):
     b_seq = unpack_sequence(json)
-    pprint(b_seq)
+    print('\n\n {:=^50}\n'.format(" Sequence Data "))
+    if verbose:
+        pprint(b_seq, width=120)
+    else:
+        print("Sequence no.", b_seq['seq_no'])
+        print("Output: {}\n{}".format(b_seq['OUTPUT']['data'], b_seq['OUTPUT']['timestamp']))
     commit_data = b_seq['COMMIT']['data']
-    mt = build_merkle_tree(commit_data[b'leaves'], commit_data[b'hash_type'].decode('ascii'), commit_data[b'root'])
 
+    print('\n\n {:=^50}\n'.format(" Merkle Tree "))
+    mt = build_merkle_tree(commit_data[b'leaves'], commit_data[b'hash_type'].decode('ascii'), commit_data[b'root'])
+    print("Merkle Tree:\n\tRoot -> {}\n\tLeaves -> {}".format(mt.merkle_root.hex(), len(mt.leaves)))
+    if inp:
+        inp = bytes.fromhex(inp)
+        try:
+            idx = mt.leaves.index(inp)
+        except ValueError:
+            print("Input '{}' not found in commitment!".format(inp.hex()))
+        else:
+            print("Proof")
+            pprint(mt.get_proof(idx))
+
+    print('\n\n {:=^50}\n'.format(" Computation Verification "))
     proof_data = b_seq['PROOF']['data']
+    print("Sloth parameters: {} bits, {} iterations".format(proof_data[b'bits'], proof_data[b'iterations']))
+    print("Sloth witness: {}".format(proof_data[b'witness'].hex()))
     valid = verify_sloth(mt.merkle_root, bytes.fromhex(b_seq['OUTPUT']['data']), proof_data[b'witness'], proof_data[b'bits'], proof_data[b'iterations'])
-    print("VALID", valid)
+    print("VALID" if valid else "NOT VALID!")
 
 if __name__ == "__main__":
     main()
