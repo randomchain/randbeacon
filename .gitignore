@@ -107,3 +107,4 @@ venv.bak/
 output.json
 proxy/proxy
 *.o
+randbeacon/publishing/credentials.py
