@@ -14,5 +14,5 @@ while True:
     if len(sys.argv) > 2 and sys.argv[2] == "-v":
         print("{:6} | ({}) {}".format(i, len(recv), repr(recv)))
     else:
-        print("{:6} | ({}) {:.200}...".format(i, len(recv), repr(recv)))
+        print("{:6} | ({}) {:.10}...".format(i, len(recv), repr(recv)))
     i += 1
