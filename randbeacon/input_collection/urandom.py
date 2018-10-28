@@ -30,7 +30,7 @@ def push_loop():
 @click.option('--hash-algo', default="sha512", help="Hashing algorithm to be used")
 @click.option('--push-connect', default="tcp://localhost:11234", help="Addr of input processor")
 @click.option('--push-interval', default=5, help="The push interval in seconds")
-@click.option('--random-bytes', default=512, help="The number of bytes to get from urandom")
+@click.option('--random-bytes', default=64, help="The number of bytes to get from urandom")
 def main(hash_algo, push_connect, push_interval, random_bytes):
     global PUSH_CONNECT, HASHER, PUSH_INTERVAL, RANDOM_BYTES
     PUSH_CONNECT = push_connect

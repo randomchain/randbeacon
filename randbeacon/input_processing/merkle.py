@@ -18,6 +18,9 @@ class MerkleInputProcessor(BaseInputProcessor):
         self.mt.add_leaf(inp, do_hash=False)
         log.info('leaf added | leaves: {}'.format(len(self.mt.leaves)))
 
+    def ready_to_process(self):
+        return len(self.mt.leaves) > 0
+
     def process(self):
         log.info('Make Tree')
         self.mt.make_tree()

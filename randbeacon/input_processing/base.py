@@ -32,6 +32,9 @@ class BaseInputProcessor(object):
     def add_input(self, inp):
         pass
 
+    def ready_to_process(self):
+        return True
+
     def process(self):
         log.info('Process inputs')
         pass
@@ -73,10 +76,11 @@ class BaseInputProcessor(object):
             if compute_id not in self.worker_deque:
                 self.worker_deque.append(compute_id)
                 log.info('Worker "{}" added to deque ({})', compute_id, len(self.worker_deque))
+            log.debug('Worker "{}" already in deque ({})', compute_id, len(self.worker_deque))
         elif status == Status.OK:
             log.info('Worker "{}" received data', compute_id)
         elif status == Status.ERROR:
-            log.warn('Worker "{}" reported error in data!', compute_id)
+            log.warn('Worker "{}" reported error!', compute_id)
 
 
     def send_to_comp(self, compute_id, seq_no):
@@ -119,7 +123,7 @@ class BaseInputProcessor(object):
             if self.router in socks:
                 self.recv_from_comp()
 
-            if self.worker_deque and time.time() - last_process >= self.gather_time:
+            if self.worker_deque and self.ready_to_process() and time.time() - last_process >= self.gather_time:
                 compute_id = self.worker_deque.popleft()
                 last_process = time.time()
                 try:
