@@ -30,6 +30,7 @@ def update_file(seq_no, entry_type, data):
             'timestamp': timestamp,
             'data': data,
         },
+        "seq_no": seq_no,
     }
     log.debug('new data -> seq no: {} | {}', seq_no, data_dict)
     if DIR:
