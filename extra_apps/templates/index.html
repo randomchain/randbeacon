@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+{% if outputs %}
+<h1>Beacon sequences - Commit, Output, Proof</h1>
+<div class="list-group">
+    {% for output in outputs %}
+        <a href="/seq/{{output['seq_no']}}" class="text-truncate list-group-item list-group-item-action">
+            <span class="badge badge-info">#{{ output['seq_no'] }}</span>
+        {% if 'OUTPUT' in output %}
+            <samp>{{ output['OUTPUT']['data'] }}</samp>
+        {% else %}
+            Commitment published at {{ output['COMMIT']['timestamp'] }}
+        {% endif %}
+        </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

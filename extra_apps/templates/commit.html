@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set active_page = "commit" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+{% if leaves %}
+<h1>Sequence {{ seq_no }}</h1>
+<h3>Merkle Tree Leaves - Inputs</h3>
+<table class="table context">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">hash</th>
+    </tr>
+  </thead>
+  <tbody>
+      {% for leaf in leaves %}
+      <tr>
+          <th scope="row">{{ loop.index0 }}</th>
+          <td>{{ leaf }}</td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/mark.js@8.11.1/dist/mark.min.js" charset="utf-8">
+</script>
+{% endblock %}
+{% block inp_hash_script %}
+var keyword = inp_hash
+var context = document.querySelector(".context");
+var instance = new Mark(context);
+instance.mark(keyword, {"element": "span", "className": "bg-primary text-white d-block"});
+{% endblock %}
+

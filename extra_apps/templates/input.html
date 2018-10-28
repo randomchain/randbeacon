@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set active_page = "input" %}
+{% block title %}Beacon Input{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+<h1>Provide Input</h1>
+<form action="input" method="post" accept-charset="utf-8">
+<div class="input-group mb-3">
+    <input type="text" class="form-control" placeholder="input" name="input" aria-label="User Input" aria-describedby="basic-addon2">
+    <div class="input-group-append">
+        <button class="btn btn-outline-secondary" type="submit">send</button>
+    </div>
+</div>
+</form>
+{% endblock %}

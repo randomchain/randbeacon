@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% set active_page = "seq" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+{% if seq %}
+<h1>Sequence {{ seq['seq_no'] }}</h1>
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Commitment
+            </div>
+            <div class="card-body">
+                <p class="card-text">Merkle root <samp>{{ seq['COMMIT']['data']['root'] }}</samp></p>
+                <p class="card-text">Timestamp {{ seq['COMMIT']['timestamp'] }}</p>
+                <a href="/commit/{{seq['seq_no']}}" class="btn btn-primary">Explore commitment</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if 'OUTPUT' in seq %}
+<div class="row my-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Output
+            </div>
+            <div class="card-body">
+            <div class="row">
+            <div class="col-4 col-md-2 col-lg-1 my-auto">
+            <img id="outidenticon" class="img-fluid" src="" alt=""/>
+            </div>
+            <div class="col-8 col-md-10 col-lg-11">
+                <h5><samp>{{ seq['OUTPUT']['data'] }}</samp></h5>
+                <p class="card-text">Timestamp {{ seq['OUTPUT']['timestamp'] }}</p>
+            </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if 'PROOF' in seq %}
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Proof
+            </div>
+            <div class="card-body">
+                <p class="card-text">Witness <samp>{{ seq['PROOF']['data']['witness'] }}</samp></p>
+                <p class="card-text">{{ seq['PROOF']['data']['bits'] }} bit prime - {{ seq['PROOF']['data']['iterations'] }} iterations of modular square root permutations</p>
+                <p class="card-text">Timestamp {{ seq['PROOF']['timestamp'] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block extrascript %}
+{% if 'OUTPUT' in seq %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/identicon.js/2.3.2/identicon.min.js" charset="utf-8">
+</script>
+<script charset="utf-8">
+    var hash = "{{ seq['OUTPUT']['data'] }}";  // 15+ hex chars
+var options = {
+      background: [255, 255, 255, 255],         // rgba white
+      margin: 0.0,                              // 20% margin
+      size: 420,                                // 420px square
+      format: 'svg'                             // use SVG instead of PNG
+    };
+
+// create a base64 encoded SVG
+var data = new Identicon(hash, options).toString();
+
+// write to a data URI
+$('#outidenticon').attr('src', 'data:image/svg+xml;base64,' + data);
+</script>
+{% endif %}
+{% endblock %}
