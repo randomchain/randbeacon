@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-// can be build with gcc proxy.c -lzmq -o proxy
-
 int main (int argc, char* argv[])
 {
     void *context = zmq_ctx_new();
