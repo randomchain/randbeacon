@@ -1,3 +1,6 @@
+This document roughly describes the communication between components of the beacon.
+Exact protocol is specified by usage in python code, as of now.
+
 Input Collector     ->      Input Processor
 
     IC -> IP: INPUT DATA
